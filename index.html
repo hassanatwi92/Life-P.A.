@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hesebet l Premium - Securite Assurance</title>
+<style>
+:root{--bg:#f6f5f2;--card:#fff;--text:#1d1d1b;--muted:#6b6b66;--accent:#2f2f2d;--line:#e2e0da;--hi:#0f6e56;--hibg:#e3f3ed;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#171716;--card:#232321;--text:#f0efe9;--muted:#a3a29b;--accent:#f0efe9;--line:#3a3a37;--hi:#5dcaa5;--hibg:#10372c;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#171716;--card:#232321;--text:#f0efe9;--muted:#a3a29b;--accent:#f0efe9;--line:#3a3a37;--hi:#5dcaa5;--hibg:#10372c;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.4}
+.wrap{max-width:520px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:20px;margin:0 0 2px}
+.sub{color:var(--muted);font-size:13px;margin-bottom:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+label{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
+label:first-child{margin-top:0}
+input[type=number]{width:100%;font-size:18px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--text);box-sizing:border-box}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1;min-width:56px;padding:10px 8px;font-size:15px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--text);cursor:pointer}
+.seg button.on{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+.res{display:flex;justify-content:space-between;align-items:baseline;padding:12px 0;border-bottom:1px solid var(--line)}
+.res:last-child{border-bottom:0}
+.res small{display:block;color:var(--muted);font-size:12px}
+.amt{font-size:22px;font-weight:600}
+.big{background:var(--hibg);border-radius:10px;padding:12px;border:0;margin-top:6px}
+.big .amt{color:var(--hi)}
+.err{color:#b3261e;font-size:14px}
+.note{font-size:12px;color:var(--muted);margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Hesebet l Premium</h1>
+  <div class="sub">Securite Assurance - Term Life &amp; Personal Accident (USD / sene)</div>
+
+  <div class="card">
+    <label for="age">L 3omor (20 - 59)</label>
+    <input id="age" type="number" inputmode="numeric" min="20" max="59" placeholder="m.a. 42">
+
+    <label>2imet l ta8tiye</label>
+    <div class="seg" id="cov"></div>
+
+    <label>Class l Term Life</label>
+    <div class="seg" id="lc"></div>
+
+    <label>Class l Personal Accident</label>
+    <div class="seg" id="pc"></div>
+  </div>
+
+  <div class="card" id="out"></div>
+</div>
+<script>
+const bands=[[20,36],[37,44],[45,47],[48,50],[51,53],[54,56],[57,59]];
+// Term Life [class1,class2,class3] -> [25k,50k]
+const life=[
+ [[68,110],[72,119],[76,127]],
+ [[78,130],[83,141],[88,151]],
+ [[95,165],[102,179],[109,193]],
+ [[125,225],[135,245],[145,265]],
+ [[160,295],[174,322],[187,349]],
+ [[208,390],[226,427],[244,463]],
+ [[275,525],[300,575],[325,625]]];
+// Personal Accident A-D -> [25k,50k]
+const pa=[[50,75],[56,88],[63,100],[75,125]];
+// Combined sheet pairs: 1+A, 2+B, 3+C, 3+D
+const pairs=[[0,0],[1,1],[2,2],[2,3]];
+const comb=[
+ [[118,128,139,151],[185,207,227,252]],
+ [[128,139,151,163],[205,229,251,276]],
+ [[145,158,172,184],[240,267,293,318]],
+ [[175,191,208,220],[300,333,365,390]],
+ [[210,230,250,262],[370,410,449,474]],
+ [[258,282,307,319],[465,515,563,588]],
+ [[325,356,388,400],[600,663,725,750]]];
+
+const st={cov:0,lc:0,pc:0};
+function seg(id,labels,key){
+  const el=document.getElementById(id);
+  el.innerHTML="";
+  labels.forEach((t,i)=>{
+    const b=document.createElement("button");
+    b.textContent=t;
+    b.className=st[key]===i?"on":"";
+    b.onclick=()=>{st[key]=i;seg(id,labels,key);render();};
+    el.appendChild(b);
+  });
+}
+const usd=n=>"$"+n.toLocaleString("en-US");
+function render(){
+  const age=parseInt(document.getElementById("age").value,10);
+  const out=document.getElementById("out");
+  if(!age){out.innerHTML='<div class="note">2ekteb l 3omor la tshouf l natije.</div>';return;}
+  if(age<20||age>59){out.innerHTML='<div class="err">L 3omor lezem ykoun bayn 20 w 59 (7asab l jadwal).</div>';return;}
+  const b=bands.findIndex(r=>age>=r[0]&&age<=r[1]);
+  const L=life[b][st.lc][st.cov];
+  const P=pa[st.pc][st.cov];
+  const pi=pairs.findIndex(p=>p[0]===st.lc&&p[1]===st.pc);
+  const total=pi>=0?comb[b][st.cov][pi]:L+P;
+  const cover=st.cov?"50,000":"25,000";
+  out.innerHTML=
+   `<div class="note" style="margin:0 0 6px">Fiet l 3omor: ${bands[b][0]}-${bands[b][1]} | Ta8tiye: USD ${cover}</div>
+    <div class="res"><div>Term Life<small>Class ${st.lc+1}</small></div><div class="amt">${usd(L)}</div></div>
+    <div class="res"><div>Personal Accident<small>Class ${"ABCD"[st.pc]}</small></div><div class="amt">${usd(P)}</div></div>
+    <div class="res big"><div>L tnen sawa (Combined)<small>${pi>=0?"min jadwal l Combined: "+(st.lc+1)+"+"+"ABCD"[st.pc]:"majmou3 l tnen (hal combo mish bel jadwal l Combined)"}</small></div><div class="amt">${usd(total)}</div></div>`;
+}
+document.getElementById("age").addEventListener("input",render);
+seg("cov",["USD 25,000","USD 50,000"],"cov");
+const allowed=[[0],[1],[2,3]]; // class 1 -> A, class 2 -> B, class 3 -> C aw D
+function drawLC(){
+  const el=document.getElementById("lc");el.innerHTML="";
+  ["Class 1","Class 2","Class 3"].forEach((t,i)=>{
+    const b=document.createElement("button");
+    b.textContent=t;b.className=st.lc===i?"on":"";
+    b.onclick=()=>{st.lc=i;st.pc=allowed[i][0];drawLC();drawPC();render();};
+    el.appendChild(b);
+  });
+}
+function drawPC(){
+  const el=document.getElementById("pc");el.innerHTML="";
+  allowed[st.lc].forEach(i=>{
+    const b=document.createElement("button");
+    b.textContent="ABCD"[i];b.className=st.pc===i?"on":"";
+    b.onclick=()=>{st.pc=i;drawPC();render();};
+    el.appendChild(b);
+  });
+}
+drawLC();drawPC();
+render();
+</script>
+</body>
+</html>
